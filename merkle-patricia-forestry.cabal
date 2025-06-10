@@ -1,0 +1,57 @@
+cabal-version: 3.4
+name: merkle-patricia-forestry
+version: 0.1.0.0
+-- synopsis:
+-- description:
+license: MIT
+license-file: LICENSE
+author: Sourabh Aggarwal <lambdaproofs@pm.me>
+maintainer: lambdaproofs@pm.me
+-- copyright:
+category: Data Structures, Cryptography
+build-type: Simple
+extra-doc-files: CHANGELOG.md
+
+-- extra-source-files:
+common common
+  ghc-options: -Wall
+  default-extensions:
+    DerivingStrategies
+    OverloadedStrings
+
+library
+  import: common
+  exposed-modules:
+    Crypto.Hash.MerklePatriciaForestry
+    Crypto.Hash.MerklePatriciaForestry.Class.MonadStore
+    Crypto.Hash.MerklePatriciaForestry.Types
+    Crypto.Hash.MerklePatriciaForestry.Types.HexDigit
+    Crypto.Hash.MerklePatriciaForestry.Types.SparseVector
+    Crypto.Hash.MerklePatriciaForestry.Utils
+
+  other-modules:
+  -- other-modules:
+  -- other-extensions:
+  build-depends:
+    base >=4.18.0.0 && <5,
+    base16-bytestring,
+    blake2,
+    bytestring,
+    containers,
+    text,
+    vector,
+
+  hs-source-dirs: src
+  default-language: GHC2021
+
+test-suite merkle-patricia-forestry-test
+  import: common
+  default-language: GHC2021
+  -- other-modules:
+  -- other-extensions:
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: Main.hs
+  build-depends:
+    base,
+    merkle-patricia-forestry,
