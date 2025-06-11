@@ -18,6 +18,7 @@ common common
   default-extensions:
     DerivingStrategies
     OverloadedStrings
+    RecordWildCards
 
 library
   import: common
@@ -26,6 +27,7 @@ library
     Crypto.Hash.MerklePatriciaForestry.Class.MonadStore
     Crypto.Hash.MerklePatriciaForestry.Types
     Crypto.Hash.MerklePatriciaForestry.Types.HexDigit
+    Crypto.Hash.MerklePatriciaForestry.Types.Leaf
     Crypto.Hash.MerklePatriciaForestry.Types.SparseVector
     Crypto.Hash.MerklePatriciaForestry.Utils
 
