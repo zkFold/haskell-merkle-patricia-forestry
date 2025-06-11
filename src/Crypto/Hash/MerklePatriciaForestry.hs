@@ -5,6 +5,7 @@ module Crypto.Hash.MerklePatriciaForestry (
   size,
   rootHash,
   insert,
+  delete,
 ) where
 
 import Crypto.Hash.MerklePatriciaForestry.Types
@@ -75,9 +76,9 @@ insert key val mpf = case mpf of
         -- We update the value.
         if keyPath == leafSuffix leaf
           then
-            MerklePatriciaForestryNode trieSize (MerklePatriciaForestryNodeLeaf $ mkLeaf key val keyPath)
+            MerklePatriciaForestryNode trieSize (MerklePatriciaForestryNodeLeaf $ updateLeaf leaf val)
           else
-            emptyBranch
+            emptyBranch{branchPrefix = commonPrefix [keyPath, leafSuffix leaf]}
               & branchInsert (leafKey leaf) (leafValue leaf) (leafSuffix leaf)
               & branchInsert key val keyPath
               & MerklePatriciaForestryNodeBranch
@@ -147,12 +148,15 @@ branchInsert' key val path branch =
   let pathMinusPrefix = drop (length (branchPrefix branch)) path
       childIx = head pathMinusPrefix -- Since all keys are of same length, prefix stored (if any) is always less than or ... (TODO: complete this sentence)
       subPath = tail pathMinusPrefix
-   in if Map.member childIx (branchChildren branch)
+   in if Map.notMember childIx (branchChildren branch)
         then
+          let newLeaf = mkLeaf key val subPath
+           in (updateBranchChild branch childIx (MerklePatriciaForestryNodeLeaf newLeaf), True)
+        else
           let existingChild = branchChildren branch Map.! childIx
            in case existingChild of
                 MerklePatriciaForestryNodeLeaf leaf ->
-                  let cmnPrefix = commonPrefix [subPath, (leafSuffix leaf)]
+                  let cmnPrefix = commonPrefix [subPath, leafSuffix leaf]
                    in if cmnPrefix == leafSuffix leaf
                         then
                           -- Update the value of existing key.
@@ -176,20 +180,26 @@ branchInsert' key val path branch =
                            in (updateBranchChild branch childIx (MerklePatriciaForestryNodeBranch newChildBranch), newElem)
                         else
                           -- Create a new branch node with common prefix.
+                          -- TODO: What if this common prefix is empty?
                           let newBranch = emptyBranch{branchPrefix = cmnPrefix}
                               newOrigBranchPrefix = drop (length cmnPrefix) (branchPrefix childBranch)
                               newChildBranch = branchUpdateHash $ childBranch{branchPrefix = drop 1 newOrigBranchPrefix}
+                              -- TODO: Maybe `newElem` logic here is incorrect and it is set to be True.
                               (newBranchFinal, newElem) = updateBranchChild newBranch (head newOrigBranchPrefix) (MerklePatriciaForestryNodeBranch newChildBranch) & branchInsert' key val subPath
                            in (updateBranchChild branch childIx (MerklePatriciaForestryNodeBranch newBranchFinal), newElem)
-        else
-          let newLeaf = mkLeaf key val subPath
-           in (updateBranchChild branch childIx (MerklePatriciaForestryNodeLeaf newLeaf), True)
 
 updateBranchChild :: Branch -> HexDigit -> MerklePatriciaForestryNode -> Branch
 updateBranchChild branch childIx newChild =
   branchUpdateHash $
     branch
       { branchChildren = Map.insert childIx newChild (branchChildren branch)
+      }
+
+deleteBranchChild :: Branch -> HexDigit -> Branch
+deleteBranchChild branch childIx =
+  branchUpdateHash $
+    branch
+      { branchChildren = Map.delete childIx (branchChildren branch)
       }
 
 merkleRoot :: Map HexDigit MerklePatriciaForestryNode -> ByteString
@@ -216,6 +226,69 @@ branchUpdateHash branch =
           )
     }
 
+-- | Delete a key (and it's value) from the trie. If the key is not a member of the trie, the original trie is returned.
+delete :: Key -> MerklePatriciaForestry -> MerklePatriciaForestry
+delete _key MerklePatriciaForestryEmpty = MerklePatriciaForestryEmpty
+delete key (MerklePatriciaForestryNode trieSize node) =
+  case node of
+    MerklePatriciaForestryNodeLeaf leaf ->
+      if keyPath == leafSuffix leaf
+        then MerklePatriciaForestryEmpty
+        else MerklePatriciaForestryNode trieSize node
+    MerklePatriciaForestryNodeBranch branch ->
+      let (newBranch, elemFound) = branchDelete keyPath branch
+       in if not elemFound
+            then MerklePatriciaForestryNode trieSize node
+            else
+              MerklePatriciaForestryNode (trieSize - 1) $
+                -- Move single remaining child to parent.
+                if Map.size (branchChildren newBranch) == 1
+                  then
+                    let (newBranchChildIx, newBranchChild) = Map.findMin (branchChildren newBranch)
+                     in case newBranchChild of
+                          MerklePatriciaForestryNodeLeaf newBranchChildLeaf ->
+                            let newSuffix = branchPrefix newBranch <> [newBranchChildIx] <> leafSuffix newBranchChildLeaf
+                             in (MerklePatriciaForestryNodeLeaf $ mkLeaf (leafKey newBranchChildLeaf) (leafValue newBranchChildLeaf) newSuffix)
+                          -- We shouldn't ever enter this case.
+                          MerklePatriciaForestryNodeBranch newBranchChildBranch ->
+                            let newPrefix = branchPrefix newBranch <> [newBranchChildIx] <> branchPrefix newBranchChildBranch
+                             in (MerklePatriciaForestryNodeBranch $ branchUpdateHash $ newBranchChildBranch{branchPrefix = newPrefix})
+                  else MerklePatriciaForestryNodeBranch newBranch
+ where
+  keyPath = intoPath key
+
+branchDelete :: [HexDigit] -> Branch -> (Branch, Bool)
+branchDelete keyPath branch =
+  let pathMinusPrefix = drop (length (branchPrefix branch)) keyPath
+      childIx = head pathMinusPrefix
+      subPath = tail pathMinusPrefix
+   in if Map.notMember childIx (branchChildren branch)
+        then (branch, False)
+        else
+          let existingChild = branchChildren branch Map.! childIx
+           in case existingChild of
+                MerklePatriciaForestryNodeLeaf leaf ->
+                  if leafSuffix leaf /= subPath
+                    then (branch, False)
+                    -- Note that here we could have situation that this branch has only one child. This needs to be handled.
+                    else (deleteBranchChild branch childIx, True)
+                MerklePatriciaForestryNodeBranch childBranch ->
+                  let
+                    (newChildBranch, elemFound) = branchDelete subPath childBranch
+                   in
+                    if -- It never makes sense for branch to have only one child. If this has occurred due to deletion, then we need to move the single child to parent.
+                    Map.size (branchChildren newChildBranch) == 1
+                      then
+                        let (newChildBranchChildIx, newChildBranchChild) = Map.findMin (branchChildren newChildBranch)
+                         in case newChildBranchChild of
+                              MerklePatriciaForestryNodeLeaf newChildBranchChildLeaf ->
+                                let newSuffix = branchPrefix newChildBranch <> [newChildBranchChildIx] <> leafSuffix newChildBranchChildLeaf
+                                 in (updateBranchChild branch childIx (MerklePatriciaForestryNodeLeaf $ mkLeaf (leafKey newChildBranchChildLeaf) (leafValue newChildBranchChildLeaf) newSuffix), elemFound)
+                              MerklePatriciaForestryNodeBranch newChildBranchChildBranch ->
+                                let newPrefix = branchPrefix newChildBranch <> [newChildBranchChildIx] <> branchPrefix newChildBranchChildBranch
+                                 in (updateBranchChild branch childIx (MerklePatriciaForestryNodeBranch $ branchUpdateHash $ newChildBranchChildBranch{branchPrefix = newPrefix}), elemFound)
+                      else (updateBranchChild branch childIx (MerklePatriciaForestryNodeBranch newChildBranch), elemFound)
+
 -- | Turn any key into a path of nibbles.
 intoPath :: ByteString -> [HexDigit]
 intoPath = digest >>> byteStringToHexDigits
@@ -236,15 +309,13 @@ valueFromString = keyFromString
 valueFromText :: Text -> Value
 valueFromText = keyFromText
 
--- fromList :: [(Key, Value)] -> MerklePatriciaForestry
--- fromList kvs = go $ map (\(k, v) -> (k, v, intoPath k)) kvs
---  where
---   go :: [(Key, Value, ByteString)] -> MerklePatriciaForestry
---   go [] = MerklePatriciaForestry nullHash 0 ""
---   go [(k, v, p)] = case kvs of
---     [] -> MerklePatriciaForestry (digest v) 1 p
---     (k', v', p') : kvs' -> go kvs'
+{-
+TODO:
 
--- go ((k, v, p) : kvs) = case kvs of
---   [] -> MerklePatriciaForestry (digest v) 1 p
---   (k', v', p') : kvs' -> go kvs'
+1. Make `Key`, `Value` newtypes and move them to their own modules.
+2. Move leaf, branch to it's own modules. Don't expose set fields of branch rather have safe setters that also update the hash.
+3. notMember should be replaced with lookup, since we want element in case it exists.
+4. Get rid of containers, vector (but maybe blake2 already depends on it!).
+5. Write asymptotics for all functions.
+
+-}
