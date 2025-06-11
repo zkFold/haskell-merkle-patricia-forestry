@@ -236,58 +236,47 @@ delete key (MerklePatriciaForestryNode trieSize node) =
         then MerklePatriciaForestryEmpty
         else MerklePatriciaForestryNode trieSize node
     MerklePatriciaForestryNodeBranch branch ->
-      let (newBranch, elemFound) = branchDelete keyPath branch
-       in if not elemFound
-            then MerklePatriciaForestryNode trieSize node
-            else
-              MerklePatriciaForestryNode (trieSize - 1) $
-                -- Move single remaining child to parent.
-                if Map.size (branchChildren newBranch) == 1
-                  then
-                    let (newBranchChildIx, newBranchChild) = Map.findMin (branchChildren newBranch)
-                     in case newBranchChild of
-                          MerklePatriciaForestryNodeLeaf newBranchChildLeaf ->
-                            let newSuffix = branchPrefix newBranch <> [newBranchChildIx] <> leafSuffix newBranchChildLeaf
-                             in (MerklePatriciaForestryNodeLeaf $ mkLeaf (leafKey newBranchChildLeaf) (leafValue newBranchChildLeaf) newSuffix)
-                          -- We shouldn't ever enter this case.
-                          MerklePatriciaForestryNodeBranch newBranchChildBranch ->
-                            let newPrefix = branchPrefix newBranch <> [newBranchChildIx] <> branchPrefix newBranchChildBranch
-                             in (MerklePatriciaForestryNodeBranch $ branchUpdateHash $ newBranchChildBranch{branchPrefix = newPrefix})
-                  else MerklePatriciaForestryNodeBranch newBranch
+      let (newNode, elemFound) = branchDelete keyPath branch
+       in MerklePatriciaForestryNode (if elemFound then trieSize - 1 else trieSize) $
+            either MerklePatriciaForestryNodeLeaf MerklePatriciaForestryNodeBranch newNode
  where
   keyPath = intoPath key
 
-branchDelete :: [HexDigit] -> Branch -> (Branch, Bool)
+branchDelete :: [HexDigit] -> Branch -> (Either Leaf Branch, Bool)
 branchDelete keyPath branch =
   let pathMinusPrefix = drop (length (branchPrefix branch)) keyPath
       childIx = head pathMinusPrefix
       subPath = tail pathMinusPrefix
    in if Map.notMember childIx (branchChildren branch)
-        then (branch, False)
+        then (Right branch, False)
         else
           let existingChild = branchChildren branch Map.! childIx
            in case existingChild of
                 MerklePatriciaForestryNodeLeaf leaf ->
                   if leafSuffix leaf /= subPath
-                    then (branch, False)
-                    -- Note that here we could have situation that this branch has only one child. This needs to be handled.
-                    else (deleteBranchChild branch childIx, True)
+                    then (Right branch, False)
+                    else
+                      let newBranch = deleteBranchChild branch childIx
+                       in ( -- It never makes sense for branch to have only one child. If this has occurred due to deletion, then we need to move the single child to parent.
+                            if Map.size (branchChildren newBranch) == 1
+                              then
+                                let (newBranchChildIx, newBranchChild) = Map.findMin (branchChildren newBranch)
+                                 in ( case newBranchChild of
+                                        MerklePatriciaForestryNodeLeaf newBranchChildLeaf ->
+                                          let newSuffix = branchPrefix newBranch <> [newBranchChildIx] <> leafSuffix newBranchChildLeaf
+                                           in Left $ mkLeaf (leafKey newBranchChildLeaf) (leafValue newBranchChildLeaf) newSuffix
+                                        MerklePatriciaForestryNodeBranch newBranchChildBranch ->
+                                          let newPrefix = branchPrefix newBranch <> [newBranchChildIx] <> branchPrefix newBranchChildBranch
+                                           in Right $ branchUpdateHash $ newBranchChildBranch{branchPrefix = newPrefix}
+                                    )
+                              else Right newBranch
+                          , True
+                          )
                 MerklePatriciaForestryNodeBranch childBranch ->
                   let
-                    (newChildBranch, elemFound) = branchDelete subPath childBranch
+                    (newChild, elemFound) = branchDelete subPath childBranch
                    in
-                    if -- It never makes sense for branch to have only one child. If this has occurred due to deletion, then we need to move the single child to parent.
-                    Map.size (branchChildren newChildBranch) == 1
-                      then
-                        let (newChildBranchChildIx, newChildBranchChild) = Map.findMin (branchChildren newChildBranch)
-                         in case newChildBranchChild of
-                              MerklePatriciaForestryNodeLeaf newChildBranchChildLeaf ->
-                                let newSuffix = branchPrefix newChildBranch <> [newChildBranchChildIx] <> leafSuffix newChildBranchChildLeaf
-                                 in (updateBranchChild branch childIx (MerklePatriciaForestryNodeLeaf $ mkLeaf (leafKey newChildBranchChildLeaf) (leafValue newChildBranchChildLeaf) newSuffix), elemFound)
-                              MerklePatriciaForestryNodeBranch newChildBranchChildBranch ->
-                                let newPrefix = branchPrefix newChildBranch <> [newChildBranchChildIx] <> branchPrefix newChildBranchChildBranch
-                                 in (updateBranchChild branch childIx (MerklePatriciaForestryNodeBranch $ branchUpdateHash $ newChildBranchChildBranch{branchPrefix = newPrefix}), elemFound)
-                      else (updateBranchChild branch childIx (MerklePatriciaForestryNodeBranch newChildBranch), elemFound)
+                    (Right $ updateBranchChild branch childIx (either MerklePatriciaForestryNodeLeaf MerklePatriciaForestryNodeBranch newChild), elemFound)
 
 -- | Turn any key into a path of nibbles.
 intoPath :: ByteString -> [HexDigit]
