@@ -237,24 +237,23 @@ delete key (MerklePatriciaForestryNode trieSize node) =
         else MerklePatriciaForestryNode trieSize node
     MerklePatriciaForestryNodeBranch branch ->
       let (newNode, elemFound) = branchDelete keyPath branch
-       in MerklePatriciaForestryNode (if elemFound then trieSize - 1 else trieSize) $
-            either MerklePatriciaForestryNodeLeaf MerklePatriciaForestryNodeBranch newNode
+       in MerklePatriciaForestryNode (if elemFound then trieSize - 1 else trieSize) newNode
  where
   keyPath = intoPath key
 
-branchDelete :: [HexDigit] -> Branch -> (Either Leaf Branch, Bool)
+branchDelete :: [HexDigit] -> Branch -> (MerklePatriciaForestryNode, Bool)
 branchDelete keyPath branch =
   let pathMinusPrefix = drop (length (branchPrefix branch)) keyPath
       childIx = head pathMinusPrefix
       subPath = tail pathMinusPrefix
    in if Map.notMember childIx (branchChildren branch)
-        then (Right branch, False)
+        then (MerklePatriciaForestryNodeBranch branch, False)
         else
           let existingChild = branchChildren branch Map.! childIx
            in case existingChild of
                 MerklePatriciaForestryNodeLeaf leaf ->
                   if leafSuffix leaf /= subPath
-                    then (Right branch, False)
+                    then (MerklePatriciaForestryNodeBranch branch, False)
                     else
                       let newBranch = deleteBranchChild branch childIx
                        in ( -- It never makes sense for branch to have only one child. If this has occurred due to deletion, then we need to move the single child to parent.
@@ -264,19 +263,19 @@ branchDelete keyPath branch =
                                  in ( case newBranchChild of
                                         MerklePatriciaForestryNodeLeaf newBranchChildLeaf ->
                                           let newSuffix = branchPrefix newBranch <> [newBranchChildIx] <> leafSuffix newBranchChildLeaf
-                                           in Left $ mkLeaf (leafKey newBranchChildLeaf) (leafValue newBranchChildLeaf) newSuffix
+                                           in MerklePatriciaForestryNodeLeaf $ mkLeaf (leafKey newBranchChildLeaf) (leafValue newBranchChildLeaf) newSuffix
                                         MerklePatriciaForestryNodeBranch newBranchChildBranch ->
                                           let newPrefix = branchPrefix newBranch <> [newBranchChildIx] <> branchPrefix newBranchChildBranch
-                                           in Right $ branchUpdateHash $ newBranchChildBranch{branchPrefix = newPrefix}
+                                           in MerklePatriciaForestryNodeBranch $ branchUpdateHash $ newBranchChildBranch{branchPrefix = newPrefix}
                                     )
-                              else Right newBranch
+                              else MerklePatriciaForestryNodeBranch newBranch
                           , True
                           )
                 MerklePatriciaForestryNodeBranch childBranch ->
                   let
                     (newChild, elemFound) = branchDelete subPath childBranch
                    in
-                    (Right $ updateBranchChild branch childIx (either MerklePatriciaForestryNodeLeaf MerklePatriciaForestryNodeBranch newChild), elemFound)
+                    (MerklePatriciaForestryNodeBranch $ updateBranchChild branch childIx newChild, elemFound)
 
 -- | Turn any key into a path of nibbles.
 intoPath :: ByteString -> [HexDigit]
@@ -306,5 +305,7 @@ TODO:
 3. notMember should be replaced with lookup, since we want element in case it exists.
 4. Get rid of containers, vector (but maybe blake2 already depends on it!).
 5. Write asymptotics for all functions.
+6. Add haddock and useful comments to all functions.
+7. Tests.
 
 -}
