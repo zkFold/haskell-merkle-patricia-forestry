@@ -83,12 +83,12 @@ insert key val mpf = case mpf of
             MerklePatriciaForestryNode trieSize (MerklePatriciaForestryNodeLeaf $ updateLeaf leaf val)
           else
             emptyBranch{branchPrefix = commonPrefix [keyPath, leafSuffix leaf]}
-              & branchInsert (leafKey leaf) (leafValue leaf) (leafSuffix leaf)
-              & branchInsert key val keyPath
+              & branchInsertInternal (leafKey leaf) (leafValue leaf) (leafSuffix leaf)
+              & branchInsertInternal key val keyPath
               & MerklePatriciaForestryNodeBranch
               & MerklePatriciaForestryNode (trieSize + 1)
       MerklePatriciaForestryNodeBranch branch ->
-        let (newBranch, newElem) = insertIntoBranch keyPath branch key val
+        let (newBranch, newElem) = branchInsert key val keyPath branch
          in MerklePatriciaForestryNode (if newElem then trieSize + 1 else trieSize) newBranch
  where
   keyPath = intoPath key
@@ -144,11 +144,11 @@ emptyBranch =
     , branchChildren = mempty
     }
 
-branchInsert :: Key -> Value -> [HexDigit] -> Branch -> Branch
-branchInsert key val path branch = fst $ branchInsert' key val path branch
+branchInsertInternal :: Key -> Value -> [HexDigit] -> Branch -> Branch
+branchInsertInternal key val path branch = fst $ branchInsertInternal' key val path branch
 
-branchInsert' :: Key -> Value -> [HexDigit] -> Branch -> (Branch, Bool)
-branchInsert' key val path branch =
+branchInsertInternal' :: Key -> Value -> [HexDigit] -> Branch -> (Branch, Bool)
+branchInsertInternal' key val path branch =
   let pathMinusPrefix = drop (length (branchPrefix branch)) path
       childIx = head pathMinusPrefix -- Since all keys are of same length, prefix stored (if any) is always less than or ... (TODO: complete this sentence)
       subPath = tail pathMinusPrefix
@@ -171,26 +171,27 @@ branchInsert' key val path branch =
                                 -- Create a new branch with common prefix.
                                 emptyBranch{branchPrefix = cmnPrefix}
                                   -- Add original leaf.
-                                  & branchInsert (leafKey leaf) (leafValue leaf) (leafSuffix leaf)
+                                  & branchInsertInternal (leafKey leaf) (leafValue leaf) (leafSuffix leaf)
                                   -- Add new element.
-                                  & branchInsert key val subPath
+                                  & branchInsertInternal key val subPath
                            in (updateBranchChild branch childIx (MerklePatriciaForestryNodeBranch newBranch), True)
                 MerklePatriciaForestryNodeBranch childBranch ->
-                  first (updateBranchChild branch childIx) $ insertIntoBranch subPath childBranch key val
+                  first (updateBranchChild branch childIx) $ branchInsert key val subPath childBranch
 
-insertIntoBranch path branch key val =
+branchInsert :: Key -> Value -> [HexDigit] -> Branch -> (MerklePatriciaForestryNode, Bool)
+branchInsert key val path branch =
   let cmnPrefix = commonPrefix [path, branchPrefix branch]
    in if cmnPrefix == branchPrefix branch
         then
           -- Insert new value in existing branch.
-          let (newBranch, newElem) = branchInsert' key val path branch
+          let (newBranch, newElem) = branchInsertInternal' key val path branch
            in (MerklePatriciaForestryNodeBranch newBranch, newElem)
         else
           -- Create a new branch node with common prefix.
           let newBranch = emptyBranch{branchPrefix = cmnPrefix}
               newOrigBranchPrefix = drop (length cmnPrefix) (branchPrefix branch)
               newChildBranch = branchUpdateHash $ branch{branchPrefix = drop 1 newOrigBranchPrefix}
-              (newBranchFinal, newElem) = updateBranchChild newBranch (head newOrigBranchPrefix) (MerklePatriciaForestryNodeBranch newChildBranch) & branchInsert' key val path
+              (newBranchFinal, newElem) = updateBranchChild newBranch (head newOrigBranchPrefix) (MerklePatriciaForestryNodeBranch newChildBranch) & branchInsertInternal' key val path
            in (MerklePatriciaForestryNodeBranch newBranchFinal, newElem)
 
 updateBranchChild :: Branch -> HexDigit -> MerklePatriciaForestryNode -> Branch
