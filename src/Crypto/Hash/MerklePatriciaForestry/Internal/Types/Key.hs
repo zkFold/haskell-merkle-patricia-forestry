@@ -12,6 +12,10 @@ import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Text
 
+{- | A key in the trie. It is simply a `ByteString`.
+
+It has an `IsString` instance, so you can use it as a string literal. Internally, strings are UTF-8 encoded.
+-}
 newtype Key = Key {unKey :: ByteString}
   deriving stock (Show)
 

@@ -250,7 +250,6 @@ intoPath = unKey >>> digest >>> byteStringToHexDigits
 {-
 TODO:
 
-1. Make `Key`, `Value` newtypes and move them to their own modules.
 2. Move leaf, branch to it's own modules. Don't expose set fields of branch rather have safe setters that also update the hash.
 3. notMember should be replaced with lookup, since we want element in case it exists.
 4. Get rid of containers, vector (but maybe blake2 already depends on it!).
