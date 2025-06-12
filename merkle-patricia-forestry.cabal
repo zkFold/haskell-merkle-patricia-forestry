@@ -56,4 +56,9 @@ test-suite merkle-patricia-forestry-test
   main-is: Main.hs
   build-depends:
     base,
+    base16-bytestring,
+    bytestring,
+    containers,
     merkle-patricia-forestry,
+    tasty,
+    tasty-hunit,
