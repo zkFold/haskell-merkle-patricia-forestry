@@ -9,6 +9,7 @@ module Crypto.Hash.MerklePatriciaForestry.Internal (
   insert,
   delete,
   Crypto.Hash.MerklePatriciaForestry.Internal.lookup,
+  member,
   Branch (..),
   emptyBranch,
   branchUpdateHash,
@@ -27,7 +28,9 @@ import Data.ByteString qualified as BS
 import Data.Function ((&))
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
+import Data.Maybe (isJust)
 import GHC.Natural (Natural)
+import Prelude hiding (lookup)
 
 data MerklePatriciaForestry
   = MerklePatriciaForestryEmpty
@@ -279,6 +282,9 @@ branchLookup keyPath branch =
                             else Just (leafValue leaf)
                         MerklePatriciaForestryNodeBranch childBranch -> branchLookup subPath childBranch
         else Nothing
+
+member :: Key -> MerklePatriciaForestry -> Bool
+member key mpf = isJust $ lookup key mpf
 
 {-
 TODO:
