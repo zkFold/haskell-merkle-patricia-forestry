@@ -13,7 +13,11 @@ import Crypto.Hash.MerklePatriciaForestry qualified as MPF
 mpf = MPF.empty 
      & MPF.insert (keyFromString "hail") (valueFromString "haskell")
      -- `Key`, `Value` have `IsString` instances.
-     & MPF.insert ("🚫") ("JS!")
+     & MPF.insert "🚫" "JS!"
+     -- Would update.
+     & MPF.insert "hail" "🐼"
+     -- Deletion for non-existent key, returns the original trie.
+     & MPF.delete "does-not-exist"
 ```
 <!-- TODO: Write more examples -->
 
