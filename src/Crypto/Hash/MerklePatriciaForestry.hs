@@ -1,7 +1,15 @@
 module Crypto.Hash.MerklePatriciaForestry (
   module Crypto.Hash.MerklePatriciaForestry.Types,
   MerklePatriciaForestry (..),
+  MerklePatriciaForestryNode (..),
+  mkLeaf,
+  Branch (..),
+  Leaf (..),
+  emptyBranch,
+  branchUpdateHash,
+  intoPath,
   nullHash,
+  merkleRoot,
   keyFromString,
   keyFromText,
   valueFromString,
@@ -21,8 +29,6 @@ import Crypto.Hash.MerklePatriciaForestry.Utils (commonPrefix)
 import Data.Bifunctor (Bifunctor (..))
 import Data.ByteString (ByteString)
 import Data.ByteString qualified as BS
-import Data.ByteString.Char8 qualified as BS8
-import Data.Char (intToDigit)
 import Data.Function ((&))
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
@@ -47,6 +53,7 @@ digest = hash (fromIntegral digestLength) mempty
 data MerklePatriciaForestry
   = MerklePatriciaForestryEmpty
   | MerklePatriciaForestryNode Natural MerklePatriciaForestryNode
+  deriving stock (Show)
 
 -- | \(O(1)\). Is it empty?
 null :: MerklePatriciaForestry -> Bool
@@ -70,6 +77,7 @@ nodeHash (MerklePatriciaForestryNodeBranch branch) = branchHash branch
 data MerklePatriciaForestryNode
   = MerklePatriciaForestryNodeLeaf Leaf
   | MerklePatriciaForestryNodeBranch Branch
+  deriving stock (Show)
 
 -- | Insert a new key and value in the trie. If the key is already present in the trie, the associated value is replaced with the supplied value.
 insert :: Key -> Value -> MerklePatriciaForestry -> MerklePatriciaForestry
@@ -101,6 +109,7 @@ data Leaf = Leaf
   , leafSuffix :: [HexDigit]
   , leafHash :: ByteString
   }
+  deriving stock (Show)
 
 mkLeaf :: Key -> Value -> [HexDigit] -> Leaf
 mkLeaf key val suffix =
@@ -121,7 +130,7 @@ hashHead suffix =
     then
       BS.singleton 0xff
     else
-      BS.singleton 0x00 <> BS8.singleton (head suffix & unHexDigit & fromIntegral & intToDigit)
+      BS.singleton 0x00 <> BS.singleton (head suffix & unHexDigit & fromIntegral)
 
 hashTail :: [HexDigit] -> ByteString
 hashTail suffix =
@@ -137,6 +146,7 @@ data Branch = Branch
   , -- TODO: Shall we use a sparse vector here? But then we'll need to somehow also track the size of children.
     branchChildren :: Map HexDigit MerklePatriciaForestryNode
   }
+  deriving stock (Show)
 
 emptyBranch :: Branch
 emptyBranch =
@@ -145,6 +155,7 @@ emptyBranch =
     , branchPrefix = []
     , branchChildren = mempty
     }
+    & branchUpdateHash
 
 branchInsertInternal :: Key -> Value -> [HexDigit] -> Branch -> Branch
 branchInsertInternal key val path branch = fst $ branchInsertInternal' key val path branch
@@ -231,7 +242,7 @@ branchUpdateHash branch =
   branch
     { branchHash =
         digest
-          ( (map (unHexDigit >>> fromIntegral >>> intToDigit) (branchPrefix branch) & BS8.pack)
+          ( (map (unHexDigit >>> fromIntegral) (branchPrefix branch) & BS.pack)
               <> merkleRoot (branchChildren branch)
           )
     }
@@ -319,4 +330,7 @@ TODO:
 7. Tests.
 8. Corrected export list from main module with headings.
 9. Make branch insert itself handle common prefix rather requiring caller to do it.
+10. `merkleRoot` etc. should be exported from internal module.
+11. review files, likely delete for monadstore...
+12. Pretty printing, prolly get rid of stock show deriving.
 -}

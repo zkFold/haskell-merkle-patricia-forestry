@@ -17,8 +17,13 @@ import Data.Foldable (foldl')
 
 >>> commonPrefix ["hello", "bye"]
 ""
+
+>>> commonPrefix ["hello", "bolio"]
+""
 -}
 commonPrefix :: (Eq b) => [[b]] -> [b]
 commonPrefix [] = []
 commonPrefix [s] = s
-commonPrefix (s : ss) = foldl' (\acc str -> [c | (c, c') <- zip acc str, c == c']) s ss
+commonPrefix (s : ss) = foldl' commonPrefix2 s ss
+ where
+  commonPrefix2 acc str = map fst $ takeWhile (uncurry (==)) $ zip acc str
