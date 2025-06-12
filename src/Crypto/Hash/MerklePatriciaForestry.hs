@@ -3,7 +3,9 @@ module Crypto.Hash.MerklePatriciaForestry (
   MerklePatriciaForestry (..),
   nullHash,
   keyFromString,
+  keyFromText,
   valueFromString,
+  valueFromText,
   Crypto.Hash.MerklePatriciaForestry.null,
   size,
   rootHash,
@@ -149,8 +151,9 @@ branchInsertInternal key val path branch = fst $ branchInsertInternal' key val p
 
 branchInsertInternal' :: Key -> Value -> [HexDigit] -> Branch -> (Branch, Bool)
 branchInsertInternal' key val path branch =
+  -- Here it is assumed that `branchPrefix` is the prefix of `path`. We maintain this invariant.
   let pathMinusPrefix = drop (length (branchPrefix branch)) path
-      childIx = head pathMinusPrefix -- Since all keys are of same length, prefix stored (if any) is always less than or ... (TODO: complete this sentence)
+      childIx = head pathMinusPrefix
       subPath = tail pathMinusPrefix
    in if Map.notMember childIx (branchChildren branch)
         then
@@ -187,6 +190,7 @@ branchInsert key val path branch =
           let (newBranch, newElem) = branchInsertInternal' key val path branch
            in (MerklePatriciaForestryNodeBranch newBranch, newElem)
         else
+          -- If we are in this case, then `branchPrefix` is certainly not mempty and `cmnPrefix` is of length strictly less than `branchPrefix` and thus `head newOrigBranchPrefix` is well defined.
           -- Create a new branch node with common prefix.
           let newBranch = emptyBranch{branchPrefix = cmnPrefix}
               newOrigBranchPrefix = drop (length cmnPrefix) (branchPrefix branch)
