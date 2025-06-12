@@ -7,6 +7,7 @@ import Data.Map.Strict qualified as Map
 import Data.Maybe (fromJust)
 import Test.Tasty
 import Test.Tasty.HUnit
+import Prelude hiding (lookup)
 
 main :: IO ()
 main = defaultMain tests
@@ -54,5 +55,16 @@ tests =
                             & insert (keyFromString "81") (valueFromString "11")
                             & insert (keyFromString "189") (valueFromString "11")
                 BS16.encode (rootHash mpf) @?= "01b252f957e3138467c540ba230723c16b32d2bfe7f33dd54e8a7ab5d7ca02e9"
+            , testGroup
+                "Lookup Tests"
+                [ testCase "Lookup for empty trie" $ do
+                    lookup "81" MerklePatriciaForestryEmpty @?= Nothing
+                , testCase "Lookup for trie with single leaf" $ do
+                    let mpf =
+                            MerklePatriciaForestryEmpty
+                                & insert "81" "11"
+                    lookup "189" mpf @?= Nothing
+                    lookup "81" mpf @?= Just "11"
+                ]
             ]
         ]

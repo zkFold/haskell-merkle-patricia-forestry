@@ -8,6 +8,7 @@ module Crypto.Hash.MerklePatriciaForestry.Internal (
   rootHash,
   insert,
   delete,
+  Crypto.Hash.MerklePatriciaForestry.Internal.lookup,
   Branch (..),
   emptyBranch,
   branchUpdateHash,
@@ -246,6 +247,38 @@ branchDelete keyPath branch =
 -- | Turn any key into a path of nibbles.
 intoPath :: Key -> [HexDigit]
 intoPath = unKey >>> digest >>> byteStringToHexDigits
+
+lookup :: Key -> MerklePatriciaForestry -> Maybe Value
+lookup _key MerklePatriciaForestryEmpty = Nothing
+lookup key (MerklePatriciaForestryNode _ node) =
+  case node of
+    MerklePatriciaForestryNodeLeaf leaf ->
+      if keyPath == leafSuffix leaf
+        then Just (leafValue leaf)
+        else Nothing
+    MerklePatriciaForestryNodeBranch branch -> branchLookup keyPath branch
+ where
+  keyPath = intoPath key
+
+branchLookup :: [HexDigit] -> Branch -> Maybe Value
+branchLookup keyPath branch =
+  let cmnPrefix = commonPrefix [keyPath, branchPrefix branch]
+   in if cmnPrefix == branchPrefix branch
+        then
+          let pathMinusPrefix = drop (length (branchPrefix branch)) keyPath
+              childIx = head pathMinusPrefix
+              subPath = tail pathMinusPrefix
+           in if Map.notMember childIx (branchChildren branch)
+                then Nothing
+                else
+                  let existingChild = branchChildren branch Map.! childIx
+                   in case existingChild of
+                        MerklePatriciaForestryNodeLeaf leaf ->
+                          if leafSuffix leaf /= subPath
+                            then Nothing
+                            else Just (leafValue leaf)
+                        MerklePatriciaForestryNodeBranch childBranch -> branchLookup subPath childBranch
+        else Nothing
 
 {-
 TODO:

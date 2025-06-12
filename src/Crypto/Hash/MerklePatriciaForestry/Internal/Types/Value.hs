@@ -16,6 +16,7 @@ It has an `IsString` instance, so you can use it as a string literal. Internally
 -}
 newtype Value = Value {unValue :: ByteString}
   deriving stock (Show)
+  deriving newtype (Eq, Ord)
 
 instance IsString Value where
   fromString = valueFromString

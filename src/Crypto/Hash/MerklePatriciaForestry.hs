@@ -17,6 +17,7 @@ module Crypto.Hash.MerklePatriciaForestry (
   rootHash,
   insert,
   delete,
+  Crypto.Hash.MerklePatriciaForestry.Internal.lookup,
 ) where
 
 import Crypto.Hash.MerklePatriciaForestry.Internal

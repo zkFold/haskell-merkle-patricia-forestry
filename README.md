@@ -14,7 +14,7 @@ mpf = MPF.empty
      & MPF.insert (keyFromString "hail") (valueFromString "haskell")
      -- `Key`, `Value` have `IsString` instances.
      & MPF.insert "🚫" "JS!"
-     -- Would update.
+     -- Would update in case of duplicate key.
      & MPF.insert "hail" "🐼"
      -- Deletion for non-existent key, returns the original trie.
      & MPF.delete "does-not-exist"
