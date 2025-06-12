@@ -1,6 +1,9 @@
 module Crypto.Hash.MerklePatriciaForestry (
   module Crypto.Hash.MerklePatriciaForestry.Types,
-  MerklePatriciaForestry,
+  MerklePatriciaForestry (..),
+  nullHash,
+  keyFromString,
+  valueFromString,
   Crypto.Hash.MerklePatriciaForestry.null,
   size,
   rootHash,
@@ -84,8 +87,19 @@ insert key val mpf = case mpf of
               & MerklePatriciaForestryNodeBranch
               & MerklePatriciaForestryNode (trieSize + 1)
       MerklePatriciaForestryNodeBranch branch ->
-        let (newBranch, newElem) = branchInsert' key val keyPath branch
-         in MerklePatriciaForestryNode (if newElem then trieSize + 1 else trieSize) (MerklePatriciaForestryNodeBranch newBranch)
+        let cmnPrefix = commonPrefix [keyPath, branchPrefix branch]
+         in if cmnPrefix == branchPrefix branch
+              then
+                -- Insert new value in existing branch.
+                let (newBranch, newElem) = branchInsert' key val keyPath branch
+                 in MerklePatriciaForestryNode (if newElem then trieSize + 1 else trieSize) (MerklePatriciaForestryNodeBranch newBranch)
+              else
+                -- Create a new branch node with common prefix.
+                let newBranch = emptyBranch{branchPrefix = cmnPrefix}
+                    newOrigBranchPrefix = drop (length cmnPrefix) (branchPrefix branch)
+                    newChildBranch = branchUpdateHash $ branch{branchPrefix = drop 1 newOrigBranchPrefix}
+                    (newBranchFinal, newElem) = updateBranchChild newBranch (head newOrigBranchPrefix) (MerklePatriciaForestryNodeBranch newChildBranch) & branchInsert' key val keyPath
+                 in MerklePatriciaForestryNode (if newElem then trieSize + 1 else trieSize) (MerklePatriciaForestryNodeBranch newBranchFinal)
  where
   keyPath = intoPath key
 
@@ -180,11 +194,9 @@ branchInsert' key val path branch =
                            in (updateBranchChild branch childIx (MerklePatriciaForestryNodeBranch newChildBranch), newElem)
                         else
                           -- Create a new branch node with common prefix.
-                          -- TODO: What if this common prefix is empty?
                           let newBranch = emptyBranch{branchPrefix = cmnPrefix}
                               newOrigBranchPrefix = drop (length cmnPrefix) (branchPrefix childBranch)
                               newChildBranch = branchUpdateHash $ childBranch{branchPrefix = drop 1 newOrigBranchPrefix}
-                              -- TODO: Maybe `newElem` logic here is incorrect and it is set to be True.
                               (newBranchFinal, newElem) = updateBranchChild newBranch (head newOrigBranchPrefix) (MerklePatriciaForestryNodeBranch newChildBranch) & branchInsert' key val subPath
                            in (updateBranchChild branch childIx (MerklePatriciaForestryNodeBranch newBranchFinal), newElem)
 
@@ -307,5 +319,6 @@ TODO:
 5. Write asymptotics for all functions.
 6. Add haddock and useful comments to all functions.
 7. Tests.
+8. Corrected export list from main module with headings.
 
 -}
