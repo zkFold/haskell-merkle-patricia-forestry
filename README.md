@@ -10,7 +10,10 @@ import Crypto.Hash.MerklePatriciaForestry qualified as MPF
 
 
 -- Inserting elements
-mpf = MPF.empty & MPF.insert (keyFromString "hail") (valueFromString "haskell")
+mpf = MPF.empty 
+     & MPF.insert (keyFromString "hail") (valueFromString "haskell")
+     -- `Key`, `Value` have `IsString` instances.
+     & MPF.insert ("🚫") ("JS!")
 ```
 <!-- TODO: Write more examples -->
 
