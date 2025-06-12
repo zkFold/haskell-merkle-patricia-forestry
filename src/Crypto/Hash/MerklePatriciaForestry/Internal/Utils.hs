@@ -1,4 +1,4 @@
-module Crypto.Hash.MerklePatriciaForestry.Utils (
+module Crypto.Hash.MerklePatriciaForestry.Internal.Utils (
   commonPrefix,
 ) where
 

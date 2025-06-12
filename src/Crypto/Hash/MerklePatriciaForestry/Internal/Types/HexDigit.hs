@@ -1,4 +1,4 @@
-module Crypto.Hash.MerklePatriciaForestry.Types.HexDigit (
+module Crypto.Hash.MerklePatriciaForestry.Internal.Types.HexDigit (
   HexDigit,
   mkHexDigit,
   unHexDigit,

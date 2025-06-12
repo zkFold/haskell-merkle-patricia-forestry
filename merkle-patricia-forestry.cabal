@@ -24,12 +24,15 @@ library
   import: common
   exposed-modules:
     Crypto.Hash.MerklePatriciaForestry
-    Crypto.Hash.MerklePatriciaForestry.Class.MonadStore
-    Crypto.Hash.MerklePatriciaForestry.Types
-    Crypto.Hash.MerklePatriciaForestry.Types.HexDigit
-    Crypto.Hash.MerklePatriciaForestry.Types.Leaf
-    Crypto.Hash.MerklePatriciaForestry.Types.SparseVector
-    Crypto.Hash.MerklePatriciaForestry.Utils
+    Crypto.Hash.MerklePatriciaForestry.Internal
+    Crypto.Hash.MerklePatriciaForestry.Internal.Hash
+    Crypto.Hash.MerklePatriciaForestry.Internal.Types
+    Crypto.Hash.MerklePatriciaForestry.Internal.Types.HexDigit
+    Crypto.Hash.MerklePatriciaForestry.Internal.Types.Key
+    Crypto.Hash.MerklePatriciaForestry.Internal.Types.Leaf
+    Crypto.Hash.MerklePatriciaForestry.Internal.Types.SparseVector
+    Crypto.Hash.MerklePatriciaForestry.Internal.Types.Value
+    Crypto.Hash.MerklePatriciaForestry.Internal.Utils
 
   other-modules:
   -- other-modules:

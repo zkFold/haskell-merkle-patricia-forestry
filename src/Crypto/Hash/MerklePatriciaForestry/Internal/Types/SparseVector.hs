@@ -1,10 +1,10 @@
-module Crypto.Hash.MerklePatriciaForestry.Types.SparseVector (
+module Crypto.Hash.MerklePatriciaForestry.Internal.Types.SparseVector (
   SparseVector,
   mkSparseVector,
   unSparseVector,
 ) where
 
-import Crypto.Hash.MerklePatriciaForestry.Types.HexDigit (HexDigit, hexDigits)
+import Crypto.Hash.MerklePatriciaForestry.Internal.Types.HexDigit (HexDigit, hexDigits)
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
 import Data.Vector qualified as V

@@ -1,6 +1,6 @@
 module Main (main) where
 
-import Crypto.Hash.MerklePatriciaForestry
+import Crypto.Hash.MerklePatriciaForestry.Internal
 import Data.ByteString.Base16 qualified as BS16
 import Data.Function ((&))
 import Data.Map.Strict qualified as Map
