@@ -3,10 +3,10 @@ module Crypto.Hash.MerklePatriciaForestry (
   MerklePatriciaForestry,
 
   -- * Key and value types
-  Key,
+  Key (..),
   keyFromString,
   keyFromText,
-  Value,
+  Value (..),
   valueFromString,
   valueFromText,
 

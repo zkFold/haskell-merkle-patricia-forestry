@@ -244,8 +244,8 @@ branchDelete keyPath branch =
                     (MerklePatriciaForestryNodeBranch $ updateBranchChild branch childIx newChild, elemFound)
 
 -- | Turn any key into a path of nibbles.
-intoPath :: ByteString -> [HexDigit]
-intoPath = digest >>> byteStringToHexDigits
+intoPath :: Key -> [HexDigit]
+intoPath = unKey >>> digest >>> byteStringToHexDigits
 
 {-
 TODO:

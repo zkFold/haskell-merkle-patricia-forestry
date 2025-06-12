@@ -1,17 +1,19 @@
 module Crypto.Hash.MerklePatriciaForestry.Internal.Types.Value (
-  Value,
+  Value (..),
   valueFromString,
   valueFromText,
 ) where
 
-import Crypto.Hash.MerklePatriciaForestry.Internal.Types.Key (keyFromString, keyFromText)
+import Crypto.Hash.MerklePatriciaForestry.Internal.Types.Key (Key (..), keyFromString, keyFromText)
 import Data.ByteString (ByteString)
+import Data.Coerce (coerce)
 import Data.Text (Text)
 
-type Value = ByteString
+newtype Value = Value {unValue :: ByteString}
+  deriving stock (Show)
 
 valueFromString :: String -> Value
-valueFromString = keyFromString
+valueFromString = coerce . keyFromString
 
 valueFromText :: Text -> Value
-valueFromText = keyFromText
+valueFromText = coerce . keyFromText

@@ -7,7 +7,7 @@ module Crypto.Hash.MerklePatriciaForestry.Internal.Types.Leaf (
 import Crypto.Hash.MerklePatriciaForestry.Internal.Hash
 import Crypto.Hash.MerklePatriciaForestry.Internal.Types.HexDigit
 import Crypto.Hash.MerklePatriciaForestry.Internal.Types.Key (Key)
-import Crypto.Hash.MerklePatriciaForestry.Internal.Types.Value (Value)
+import Crypto.Hash.MerklePatriciaForestry.Internal.Types.Value (Value (..))
 import Data.ByteString (ByteString)
 import Data.ByteString qualified as BS
 import Data.Function ((&))
@@ -26,7 +26,7 @@ mkLeaf key val suffix =
     { leafKey = key
     , leafValue = val
     , leafSuffix = suffix
-    , leafHash = digest (hashHead suffix <> hashTail suffix <> digest val)
+    , leafHash = digest (hashHead suffix <> hashTail suffix <> digest (unValue val))
     }
 
 updateLeaf :: Leaf -> Value -> Leaf
