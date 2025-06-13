@@ -116,10 +116,3 @@ proofStepToTermEncoding (ProofStepBranch prefixLength merkleProof) =
 
 encodeProof :: Proof -> CBOR.Encoding
 encodeProof pf = CBOR.encodeListLenIndef <> mconcat (map proofStepToTermEncoding (proofSteps pf)) <> CBOR.encodeBreak
-
--- TODO: Remove this comment.
--- CBOR.TTagged 121 $
---   CBOR.TListI $
---     [ CBOR.TInt (fromIntegral prefixLength)
---     , CBOR.TBytes (mconcat merkleProof)
---     ]

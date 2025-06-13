@@ -9,8 +9,6 @@ import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
 import Data.Vector qualified as V
 
--- TODO: Is this even needed, can we just use a map?
-
 -- | Vector of length 16. See 'mkSparseVector' for details relating construction.
 newtype SparseVector a = SparseVector {unSparseVector :: V.Vector (Maybe a)}
 
