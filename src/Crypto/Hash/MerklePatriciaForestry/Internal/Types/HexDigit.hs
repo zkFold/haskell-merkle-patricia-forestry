@@ -5,6 +5,7 @@ module Crypto.Hash.MerklePatriciaForestry.Internal.Types.HexDigit (
   allHexDigits,
   byteStringToHexDigits,
   hexDigitsToByteString,
+  hexDigitsToByteStringSupportsOdd,
   hexDigitsToText,
 ) where
 
@@ -58,6 +59,11 @@ hexDigitsToByteString hds =
     & BS8.pack
     & BS16.decode
     & either (\s -> error $ "hexDigitsToByteString: " <> s) id
+
+-- TODO: Having two similar functions does not look well, abstract it.
+hexDigitsToByteStringSupportsOdd :: [HexDigit] -> BS.ByteString
+hexDigitsToByteStringSupportsOdd hds =
+  if length hds `mod` 2 == 1 then hexDigitsToByteString (HexDigit 0 : hds) else hexDigitsToByteString hds
 
 {- | Convert a list of hex digits to a corresponding text string.
 

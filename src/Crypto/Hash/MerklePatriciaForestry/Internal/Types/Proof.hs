@@ -84,7 +84,7 @@ proofStepToTermEncoding (ProofStepLeaf prefixLength neighbourKeyPath neighbourVa
     CBOR.TTagged 123 $
       CBOR.TListI $
         [ CBOR.TInt (fromIntegral prefixLength)
-        , CBOR.TBytes (hexDigitsToByteString neighbourKeyPath)
+        , CBOR.TBytes (hexDigitsToByteStringSupportsOdd neighbourKeyPath)
         , CBOR.TBytes neighbourValueDigest
         ]
 proofStepToTermEncoding (ProofStepFork prefixLength neighbourPrefix neighbourIx neighbourMerkleRoot) =
@@ -95,7 +95,7 @@ proofStepToTermEncoding (ProofStepFork prefixLength neighbourPrefix neighbourIx 
         , CBOR.TTagged 121 $
             CBOR.TListI
               [ CBOR.TInt (fromIntegral (unHexDigit neighbourIx))
-              , CBOR.TBytes (hexDigitsToByteString neighbourPrefix)
+              , CBOR.TBytes (hexDigitsToByteStringSupportsOdd neighbourPrefix)
               , CBOR.TBytes neighbourMerkleRoot
               ]
         ]
