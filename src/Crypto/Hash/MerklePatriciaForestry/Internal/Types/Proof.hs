@@ -70,3 +70,6 @@ instance Aeson.ToJSON ProofStep where
       , "type" Aeson..= Aeson.String "branch"
       , "neighbors" Aeson..= Aeson.String (mconcat (map byteStringToHex merkleProof))
       ]
+
+instance Aeson.ToJSON Proof where
+  toJSON (Proof _path _value steps) = Aeson.toJSON steps

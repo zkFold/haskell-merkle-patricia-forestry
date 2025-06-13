@@ -26,10 +26,12 @@ import Crypto.Hash.MerklePatriciaForestry.Internal.Utils
 import Data.Bifunctor (Bifunctor (..))
 import Data.ByteString (ByteString)
 import Data.ByteString qualified as BS
+import Data.Foldable (foldl')
 import Data.Function ((&))
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
 import Data.Maybe (fromJust, isJust)
+import GHC.Exts (IsList (..))
 import GHC.Natural (Natural)
 import Prelude hiding (lookup)
 
@@ -89,6 +91,19 @@ insert key val mpf = case mpf of
          in MerklePatriciaForestryNode (if newElem then trieSize + 1 else trieSize) newBranch
  where
   keyPath = intoPath key
+
+instance IsList MerklePatriciaForestry where
+  type Item MerklePatriciaForestry = (Key, Value)
+  fromList = foldl' (\mpf (key, val) -> insert key val mpf) empty
+  toList MerklePatriciaForestryEmpty = []
+  toList (MerklePatriciaForestryNode _ node) = nodeToList node
+
+nodeToList :: MerklePatriciaForestryNode -> [(Key, Value)]
+nodeToList (MerklePatriciaForestryNodeLeaf leaf) = [(leafKey leaf, leafValue leaf)]
+nodeToList (MerklePatriciaForestryNodeBranch branch) = branchToList branch
+
+branchToList :: Branch -> [(Key, Value)]
+branchToList branch = concatMap nodeToList (Map.elems (branchChildren branch))
 
 data Branch = Branch
   { branchHash :: ByteString
@@ -385,9 +400,9 @@ merkleProof nodes (unHexDigit -> targetIx) = go 8 8 []
       (newAcc, newPivotIx) =
         if targetIx < pivotIx
           then
-            (merkleRoot nodes (map (fromJust . mkHexDigit) [pivotIx .. (pivotIx + n)]) : acc, pivotIx - nby2)
+            (merkleRoot nodes (map (fromJust . mkHexDigit) [pivotIx .. (pivotIx + n - 1)]) : acc, pivotIx - nby2)
           else
-            (merkleRoot nodes (map (fromJust . mkHexDigit) [(pivotIx - n) .. pivotIx]) : acc, pivotIx + nby2)
+            (merkleRoot nodes (map (fromJust . mkHexDigit) [(pivotIx - n) .. (pivotIx - 1)]) : acc, pivotIx + nby2)
      in
       go nby2 newPivotIx newAcc
 
@@ -411,4 +426,5 @@ TODO:
 14. property based testing for membership checks.
 15. At some point, I should go over original JS implementation.
 16. get rid of aeson, prolly move it to a separate package.
+17. Add test for IsList instance.
 -}

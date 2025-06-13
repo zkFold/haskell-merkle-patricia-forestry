@@ -1,10 +1,13 @@
 module Main (main) where
 
 import Crypto.Hash.MerklePatriciaForestry.Internal
+import Data.Aeson qualified as Aeson
 import Data.ByteString.Base16 qualified as BS16
 import Data.Function ((&))
 import Data.Map.Strict qualified as Map
 import Data.Maybe (fromJust)
+import GHC.IsList (IsList (fromList))
+import GHC.Natural (Natural)
 import Test.Tasty
 import Test.Tasty.HUnit
 import Prelude hiding (lookup)
@@ -55,6 +58,9 @@ tests =
                             & insert (keyFromString "81") (valueFromString "11")
                             & insert (keyFromString "189") (valueFromString "11")
                 BS16.encode (rootHash mpf) @?= "01b252f957e3138467c540ba230723c16b32d2bfe7f33dd54e8a7ab5d7ca02e9"
+            , testCase "Insertion tests, fruitList" $ do
+                let mpf = fromList fruitsList
+                BS16.encode (rootHash mpf) @?= "4acd78f345a686361df77541b2e0b533f53362e36620a1fdd3a13e0b61a3b078"
             , testGroup
                 "Lookup Tests"
                 [ testCase "Lookup for empty trie" $ do
@@ -67,4 +73,86 @@ tests =
                     lookup "81" mpf @?= Just "11"
                 ]
             ]
+        , testGroup
+            "Proof Tests"
+            [ testCase "JSON for proof of mango" $ do
+                let mpf :: MerklePatriciaForestry = fromList fruitsList
+                    proof = generateProof "mango[uid: 0]" mpf
+                Aeson.toJSON proof
+                    @?= Aeson.Array
+                        ( fromList
+                            [ Aeson.object
+                                [ "neighbors" Aeson..= Aeson.String "c7bfa4472f3a98ebe0421e8f3f03adf0f7c4340dec65b4b92b1c9f0bed209eb45fdf82687b1ab133324cebaf46d99d49f92720c5ded08d5b02f57530f2cc5a5f1508f13471a031a21277db8817615e62a50a7427d5f8be572746aa5f0d49841758c5e4a29601399a5bd916e5f3b34c38e13253f4de2a3477114f1b2b8f9f2f4d"
+                                , "skip" Aeson..= (0 :: Natural)
+                                , "type" Aeson..= Aeson.String "branch"
+                                ]
+                            , Aeson.object
+                                [ "neighbor"
+                                    Aeson..= Aeson.object
+                                        [ "key" Aeson..= Aeson.String "09d23032e6edc0522c00bc9b74edd3af226d1204a079640a367da94c84b69ecc"
+                                        , "value" Aeson..= Aeson.String "c29c35ad67a5a55558084e634ab0d98f7dd1f60070b9ce2a53f9f305fd9d9795"
+                                        ]
+                                , "skip" Aeson..= (0 :: Natural)
+                                , "type" Aeson..= Aeson.String "leaf"
+                                ]
+                            ]
+                        )
+            , testCase "JSON for proof of kumquat" $ do
+                let mpf :: MerklePatriciaForestry = fromList fruitsList
+                    proof = generateProof "kumquat[uid: 0]" mpf
+                Aeson.toJSON proof
+                    @?= Aeson.Array
+                        ( fromList
+                            [ Aeson.object
+                                [ "neighbors" Aeson..= Aeson.String "c7bfa4472f3a98ebe0421e8f3f03adf0f7c4340dec65b4b92b1c9f0bed209eb47238ba5d16031b6bace4aee22156f5028b0ca56dc24f7247d6435292e82c039c3490a825d2e8deddf8679ce2f95f7e3a59d9c3e1af4a49b410266d21c9344d6d08434fd717aea47d156185d589f44a59fc2e0158eab7ff035083a2a66cd3e15b"
+                                , "skip" Aeson..= (0 :: Natural)
+                                , "type" Aeson..= Aeson.String "branch"
+                                ]
+                            , Aeson.object
+                                [ "neighbor"
+                                    Aeson..= Aeson.object
+                                        [ "nibble" Aeson..= (0 :: Natural)
+                                        , "prefix" Aeson..= Aeson.String "7" -- TODO: Should it be 07? That's how JS lib does it.
+                                        , "root" Aeson..= Aeson.String "a1ffbc0e72342b41129e2d01d289809079b002e54b123860077d2d66added281"
+                                        ]
+                                , "skip" Aeson..= (0 :: Natural)
+                                , "type" Aeson..= Aeson.String "fork"
+                                ]
+                            ]
+                        )
+            ]
         ]
+
+fruitsList :: [(Key, Value)]
+fruitsList =
+    [ ("apple[uid: 58]", "🍎")
+    , ("apricot[uid: 0]", "🤷")
+    , ("banana[uid: 218]", "🍌")
+    , ("blueberry[uid: 0]", "🫐")
+    , ("cherry[uid: 0]", "🍒")
+    , ("coconut[uid: 0]", "🥥")
+    , ("cranberry[uid: 0]", "🤷")
+    , ("fig[uid: 68267]", "🤷")
+    , ("grapefruit[uid: 0]", "🤷")
+    , ("grapes[uid: 0]", "🍇")
+    , ("guava[uid: 344]", "🤷")
+    , ("kiwi[uid: 0]", "🥝")
+    , ("kumquat[uid: 0]", "🤷")
+    , ("lemon[uid: 0]", "🍋")
+    , ("lime[uid: 0]", "🤷")
+    , ("mango[uid: 0]", "🥭")
+    , ("orange[uid: 0]", "🍊")
+    , ("papaya[uid: 0]", "🤷")
+    , ("passionfruit[uid: 0]", "🤷")
+    , ("peach[uid: 0]", "🍑")
+    , ("pear[uid: 0]", "🍐")
+    , ("pineapple[uid: 12577]", "🍍")
+    , ("plum[uid: 15492]", "🤷")
+    , ("pomegranate[uid: 0]", "🤷")
+    , ("raspberry[uid: 0]", "🤷")
+    , ("strawberry[uid: 2532]", "🍓")
+    , ("tangerine[uid: 11]", "🍊")
+    , ("tomato[uid: 83468]", "🍅")
+    , ("watermelon[uid: 0]", "🍉")
+    , ("yuzu[uid: 0]", "🤷")
+    ]
