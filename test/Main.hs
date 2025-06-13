@@ -112,7 +112,7 @@ tests =
                                 [ "neighbor"
                                     Aeson..= Aeson.object
                                         [ "nibble" Aeson..= (0 :: Natural)
-                                        , "prefix" Aeson..= Aeson.String "7" -- TODO: Should it be 07? That's how JS lib does it.
+                                        , "prefix" Aeson..= Aeson.String "07"
                                         , "root" Aeson..= Aeson.String "a1ffbc0e72342b41129e2d01d289809079b002e54b123860077d2d66added281"
                                         ]
                                 , "skip" Aeson..= (0 :: Natural)

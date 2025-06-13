@@ -17,6 +17,7 @@ import Data.Coerce (coerce)
 import Data.Function ((&))
 import Data.Maybe (fromJust)
 import Data.Text (Text)
+import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Text
 import GHC.Natural (Natural)
 
@@ -62,9 +63,14 @@ hexDigitsToByteString hds =
 
 >>> hexDigitsToText [HexDigit 0, HexDigit 1, HexDigit 2, HexDigit 3, HexDigit 11, HexDigit 15]
 "0123bf"
+
+>>> hexDigitsToText [HexDigit 7]
+"7"
 -}
 hexDigitsToText :: [HexDigit] -> Text
 hexDigitsToText hds =
   map (unHexDigit >>> fromIntegral >>> intToDigit) hds
     & BS8.pack
     & Text.decodeUtf8
+    -- Since we want it to represent valid byte string.
+    & (\t -> if Text.length t `mod` 2 == 1 then Text.cons '0' t else t)
