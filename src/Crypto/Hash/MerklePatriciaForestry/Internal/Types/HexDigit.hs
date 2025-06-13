@@ -5,6 +5,7 @@ module Crypto.Hash.MerklePatriciaForestry.Internal.Types.HexDigit (
   allHexDigits,
   byteStringToHexDigits,
   hexDigitsToByteString,
+  hexDigitsToText,
 ) where
 
 import Control.Arrow ((>>>))
@@ -15,6 +16,8 @@ import Data.Char (digitToInt, intToDigit)
 import Data.Coerce (coerce)
 import Data.Function ((&))
 import Data.Maybe (fromJust)
+import Data.Text (Text)
+import Data.Text.Encoding qualified as Text
 import GHC.Natural (Natural)
 
 -- | A hex digit is a natural number between 0 and 15.
@@ -54,3 +57,14 @@ hexDigitsToByteString hds =
     & BS8.pack
     & BS16.decode
     & either (\s -> error $ "hexDigitsToByteString: " <> s) id
+
+{- | Convert a list of hex digits to a corresponding text string.
+
+>>> hexDigitsToText [HexDigit 0, HexDigit 1, HexDigit 2, HexDigit 3, HexDigit 11, HexDigit 15]
+"0123bf"
+-}
+hexDigitsToText :: [HexDigit] -> Text
+hexDigitsToText hds =
+  map (unHexDigit >>> fromIntegral >>> intToDigit) hds
+    & BS8.pack
+    & Text.decodeUtf8
