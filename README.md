@@ -18,8 +18,19 @@ mpf = MPF.empty
      & MPF.insert "hail" "🐼"
      -- Deletion for non-existent key, returns the original trie.
      & MPF.delete "does-not-exist"
+
+-- Member lookup.
+hailValue = MPF.lookup "hail" mpf
+
+-- Generates proof for verifying "hail" to be a member of our trie.
+hailProof = MPF.generateProof "hail" mpf
+
+-- Proof's CBOR encoding, this can be serialized using @Codec.CBOR.Write.toLazyByteString@ from @cborg@ package.
+hailProofCBOR = encodeProof proof
+
+-- @ToJSON@ instance is provided for 'Proof' type.
+hailProofJSON = toJSON proof
 ```
-<!-- TODO: Write more examples -->
 
 ## Credits
 
