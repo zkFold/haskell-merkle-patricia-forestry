@@ -1,8 +1,7 @@
 cabal-version: 3.4
 name: merkle-patricia-forestry
 version: 0.1.0.0
--- synopsis:
--- description:
+synopsis: Haskell library to interact with Merkle Patricia Forestry.
 license: MIT
 license-file: LICENSE
 author: Sourabh Aggarwal <lambdaproofs@pm.me>
@@ -11,6 +10,10 @@ maintainer: info@zkfold.io
 category: Data Structures, Cryptography
 build-type: Simple
 extra-doc-files: CHANGELOG.md
+
+source-repository head
+  type: git
+  location: https://github.com/zkFold/haskell-merkle-patricia-forestry
 
 -- extra-source-files:
 common common
