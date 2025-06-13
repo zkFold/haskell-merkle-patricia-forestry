@@ -1,5 +1,6 @@
 module Main (main) where
 
+import Codec.CBOR.Write qualified as CBOR
 import Crypto.Hash.MerklePatriciaForestry.Internal
 import Data.Aeson qualified as Aeson
 import Data.ByteString.Base16 qualified as BS16
@@ -75,9 +76,9 @@ tests =
             ]
         , testGroup
             "Proof Tests"
-            [ testCase "JSON for proof of mango" $ do
+            [ testCase "JSON & CBOR for proof of mango" $ do
                 let mpf :: MerklePatriciaForestry = fromList fruitsList
-                    proof = generateProof "mango[uid: 0]" mpf
+                    proof = generateProof "mango[uid: 0]" mpf & fromJust
                 Aeson.toJSON proof
                     @?= Aeson.Array
                         ( fromList
@@ -97,6 +98,7 @@ tests =
                                 ]
                             ]
                         )
+                BS16.encode (CBOR.toStrictByteString (proofToTermEncoding proof)) @?= "9fd8799f005f5840c7bfa4472f3a98ebe0421e8f3f03adf0f7c4340dec65b4b92b1c9f0bed209eb45fdf82687b1ab133324cebaf46d99d49f92720c5ded08d5b02f57530f2cc5a5f58401508f13471a031a21277db8817615e62a50a7427d5f8be572746aa5f0d49841758c5e4a29601399a5bd916e5f3b34c38e13253f4de2a3477114f1b2b8f9f2f4dffffd87b9f00582009d23032e6edc0522c00bc9b74edd3af226d1204a079640a367da94c84b69ecc5820c29c35ad67a5a55558084e634ab0d98f7dd1f60070b9ce2a53f9f305fd9d9795ffff"
             , testCase "JSON for proof of kumquat" $ do
                 let mpf :: MerklePatriciaForestry = fromList fruitsList
                     proof = generateProof "kumquat[uid: 0]" mpf

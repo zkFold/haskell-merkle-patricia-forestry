@@ -1,13 +1,17 @@
 module Crypto.Hash.MerklePatriciaForestry.Internal.Types.Proof (
   Proof (..),
   ProofStep (..),
+  proofToTermEncoding,
 ) where
 
+import Codec.CBOR.Encoding qualified as CBOR
+import Codec.CBOR.Term qualified as CBOR
 import Control.Arrow ((>>>))
 import Crypto.Hash.MerklePatriciaForestry.Internal.Types.HexDigit
 import Crypto.Hash.MerklePatriciaForestry.Internal.Types.Value
 import Data.Aeson qualified as Aeson
 import Data.ByteString (ByteString)
+import Data.ByteString qualified as BS
 import Data.ByteString.Base16 qualified as BS16
 import Data.Text (Text)
 import Data.Text.Encoding qualified as Text
@@ -73,3 +77,49 @@ instance Aeson.ToJSON ProofStep where
 
 instance Aeson.ToJSON Proof where
   toJSON (Proof _path _value steps) = Aeson.toJSON steps
+
+proofStepToTermEncoding :: ProofStep -> CBOR.Encoding
+proofStepToTermEncoding (ProofStepLeaf prefixLength neighbourKeyPath neighbourValueDigest) =
+  CBOR.encodeTerm $
+    CBOR.TTagged 123 $
+      CBOR.TListI $
+        [ CBOR.TInt (fromIntegral prefixLength)
+        , CBOR.TBytes (hexDigitsToByteString neighbourKeyPath)
+        , CBOR.TBytes neighbourValueDigest
+        ]
+proofStepToTermEncoding (ProofStepFork prefixLength neighbourPrefix neighbourIx neighbourMerkleRoot) =
+  CBOR.encodeTerm $
+    CBOR.TTagged 122 $
+      CBOR.TListI $
+        [ CBOR.TInt (fromIntegral prefixLength)
+        , CBOR.TTagged 121 $
+            CBOR.TListI
+              [ CBOR.TInt (fromIntegral (unHexDigit neighbourIx))
+              , CBOR.TBytes (hexDigitsToByteString neighbourPrefix)
+              , CBOR.TBytes neighbourMerkleRoot
+              ]
+        ]
+proofStepToTermEncoding (ProofStepBranch prefixLength merkleProof) =
+  let (bsa, bsb) = BS.splitAt 64 $ mconcat merkleProof
+   in CBOR.encodeTag64 121
+        <> ( CBOR.encodeListLenIndef
+              <> ( CBOR.encodeInt (fromIntegral prefixLength)
+                    <> ( CBOR.encodeBytesIndef
+                          <> ( CBOR.encodeBytes bsa
+                                <> CBOR.encodeBytes bsb
+                             )
+                          <> CBOR.encodeBreak
+                       )
+                 )
+              <> CBOR.encodeBreak
+           )
+
+proofToTermEncoding :: Proof -> CBOR.Encoding
+proofToTermEncoding pf = CBOR.encodeListLenIndef <> mconcat (map proofStepToTermEncoding (proofSteps pf)) <> CBOR.encodeBreak
+
+-- TODO: Remove this comment.
+-- CBOR.TTagged 121 $
+--   CBOR.TListI $
+--     [ CBOR.TInt (fromIntegral prefixLength)
+--     , CBOR.TBytes (mconcat merkleProof)
+--     ]
