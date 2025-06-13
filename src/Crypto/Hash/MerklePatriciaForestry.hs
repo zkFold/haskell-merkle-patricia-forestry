@@ -10,15 +10,24 @@ module Crypto.Hash.MerklePatriciaForestry (
   valueFromString,
   valueFromText,
 
-  -- * Trie operations
+  -- * Construction
   empty,
+  insert,
+
+  -- * Query
   Crypto.Hash.MerklePatriciaForestry.Internal.null,
   size,
   rootHash,
-  insert,
-  delete,
   Crypto.Hash.MerklePatriciaForestry.Internal.lookup,
   member,
+
+  -- * Deletion
+  delete,
+
+  -- * Proof
+  Proof,
+  generateProof,
+  encodeProof,
 ) where
 
 import Crypto.Hash.MerklePatriciaForestry.Internal

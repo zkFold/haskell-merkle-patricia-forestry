@@ -1,7 +1,7 @@
 module Crypto.Hash.MerklePatriciaForestry.Internal.Types.Proof (
   Proof (..),
   ProofStep (..),
-  proofToTermEncoding,
+  encodeProof,
 ) where
 
 import Codec.CBOR.Encoding qualified as CBOR
@@ -114,8 +114,8 @@ proofStepToTermEncoding (ProofStepBranch prefixLength merkleProof) =
               <> CBOR.encodeBreak
            )
 
-proofToTermEncoding :: Proof -> CBOR.Encoding
-proofToTermEncoding pf = CBOR.encodeListLenIndef <> mconcat (map proofStepToTermEncoding (proofSteps pf)) <> CBOR.encodeBreak
+encodeProof :: Proof -> CBOR.Encoding
+encodeProof pf = CBOR.encodeListLenIndef <> mconcat (map proofStepToTermEncoding (proofSteps pf)) <> CBOR.encodeBreak
 
 -- TODO: Remove this comment.
 -- CBOR.TTagged 121 $
