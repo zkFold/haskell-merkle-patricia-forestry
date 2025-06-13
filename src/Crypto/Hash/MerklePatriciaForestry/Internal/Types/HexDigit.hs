@@ -2,7 +2,7 @@ module Crypto.Hash.MerklePatriciaForestry.Internal.Types.HexDigit (
   HexDigit,
   mkHexDigit,
   unHexDigit,
-  hexDigits,
+  allHexDigits,
   byteStringToHexDigits,
   hexDigitsToByteString,
 ) where
@@ -27,8 +27,8 @@ mkHexDigit n
   | otherwise = Nothing
 
 -- | All hex digits.
-hexDigits :: [HexDigit]
-hexDigits = coerce [(0 :: Natural) .. 15]
+allHexDigits :: [HexDigit]
+allHexDigits = coerce [(0 :: Natural) .. 15]
 
 {- | Convert a byte string to a list of hex digits.
 

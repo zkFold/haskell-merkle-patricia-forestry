@@ -10,6 +10,7 @@ module Crypto.Hash.MerklePatriciaForestry.Internal (
   delete,
   Crypto.Hash.MerklePatriciaForestry.Internal.lookup,
   member,
+  generateProof,
   Branch (..),
   emptyBranch,
   branchUpdateHash,
@@ -28,7 +29,7 @@ import Data.ByteString qualified as BS
 import Data.Function ((&))
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
-import Data.Maybe (isJust)
+import Data.Maybe (fromJust, isJust)
 import GHC.Natural (Natural)
 import Prelude hiding (lookup)
 
@@ -172,8 +173,8 @@ deleteBranchChild branch childIx =
       { branchChildren = Map.delete childIx (branchChildren branch)
       }
 
-merkleRoot :: Map HexDigit MerklePatriciaForestryNode -> ByteString
-merkleRoot childrens =
+merkleRoot :: Map HexDigit MerklePatriciaForestryNode -> [HexDigit] -> ByteString
+merkleRoot childrens hexDigits =
   map (\hd -> maybe nullHash nodeHash (Map.lookup hd childrens)) hexDigits
     & go
  where
@@ -192,7 +193,7 @@ branchUpdateHash branch =
     { branchHash =
         digest
           ( (map (unHexDigit >>> fromIntegral) (branchPrefix branch) & BS.pack)
-              <> merkleRoot (branchChildren branch)
+              <> merkleRoot (branchChildren branch) allHexDigits
           )
     }
 
@@ -286,8 +287,114 @@ branchLookup keyPath branch =
 member :: Key -> MerklePatriciaForestry -> Bool
 member key mpf = isJust $ lookup key mpf
 
+leafGenerateProof :: [HexDigit] -> Leaf -> Maybe Proof
+leafGenerateProof path leaf =
+  if path == leafSuffix leaf
+    then
+      Just $
+        Proof
+          { proofPath = intoPath (leafKey leaf)
+          , proofValue = leafValue leaf
+          , proofSteps = []
+          }
+    else Nothing
+
+branchGenerateProof :: [HexDigit] -> Branch -> Maybe Proof
+branchGenerateProof path branch =
+  let cmnPrefix = commonPrefix [path, branchPrefix branch]
+   in if cmnPrefix == branchPrefix branch
+        then
+          let pathMinusPrefix = drop (length (branchPrefix branch)) path
+              childIx = head pathMinusPrefix
+              subPath = tail pathMinusPrefix
+           in if Map.notMember childIx (branchChildren branch)
+                then Nothing
+                else
+                  let existingChild = branchChildren branch Map.! childIx
+                      mchildProof = case existingChild of
+                        MerklePatriciaForestryNodeLeaf leaf ->
+                          leafGenerateProof subPath leaf
+                        MerklePatriciaForestryNodeBranch childBranch -> branchGenerateProof subPath childBranch
+                   in mchildProof >>= Just . rewind childIx (length (branchPrefix branch) & fromIntegral) (branchChildren branch)
+        else Nothing
+
+generateProof :: Key -> MerklePatriciaForestry -> Maybe Proof
+generateProof _key MerklePatriciaForestryEmpty = Nothing
+generateProof key (MerklePatriciaForestryNode _ node) =
+  case node of
+    MerklePatriciaForestryNodeLeaf leaf ->
+      leafGenerateProof keyPath leaf
+    MerklePatriciaForestryNodeBranch branch -> branchGenerateProof keyPath branch
+ where
+  keyPath = intoPath key
+
+-- | Add a step in front of the proof. The proof is built recursively from the bottom-up (from the leaves to the root). At each step in the proof, we rewind one level until we reach the root. At each level, we record the neighbors nodes as well as the length of the prefix.
+rewind ::
+  -- | Sub-trie index on the path we are proving.
+  HexDigit ->
+  -- | Size of the prefix.
+  Natural ->
+  -- | Sub-tries.
+  Map HexDigit MerklePatriciaForestryNode ->
+  Proof ->
+  Proof
+rewind targetIx prefixLen neighboursIncludingTarget proof =
+  let
+    neighbours = Map.filterWithKey (\k _ -> k /= targetIx) neighboursIncludingTarget -- At some point we should use Map.filterKeys but it's available only in containers version >= 0.8
+   in
+    if Map.size neighbours == 1
+      then
+        let (neighbourIx, neighbourNode) = Map.findMin neighbours
+            step = case neighbourNode of
+              MerklePatriciaForestryNodeLeaf leaf ->
+                ProofStepLeaf
+                  { pslPrefixLength = prefixLen
+                  , pslNeighbourKeyPath = intoPath (leafKey leaf)
+                  , pslNeighbourValueDigest = leafValue leaf & unValue & digest
+                  }
+              MerklePatriciaForestryNodeBranch branch ->
+                ProofStepFork
+                  { psfPrefixLength = prefixLen
+                  , psfNeighbourPrefix = branchPrefix branch
+                  , psfNeighbourIx = neighbourIx
+                  , psfNeighbourMerkleRoot = merkleRoot (branchChildren branch) allHexDigits
+                  }
+         in proof{proofSteps = step : proofSteps proof}
+      else
+        let step =
+              ProofStepBranch
+                { psbPrefixLength = prefixLen
+                , psbMerkleProof = merkleProof neighboursIncludingTarget targetIx
+                }
+         in proof{proofSteps = step : proofSteps proof}
+
+-- | Generate a merkle proof for a given sub-trie.
+merkleProof ::
+  -- | Sub-tries.
+  Map HexDigit MerklePatriciaForestryNode ->
+  -- | Sub-trie index which we are proving for.
+  HexDigit ->
+  [ByteString]
+merkleProof nodes (unHexDigit -> targetIx) = go 8 8 []
+ where
+  go :: Natural -> Natural -> [ByteString] -> [ByteString]
+  go 0 _pivotIx acc = reverse acc
+  go n pivotIx acc =
+    let
+      nby2 = n `div` 2
+      (newAcc, newPivotIx) =
+        if targetIx < pivotIx
+          then
+            (merkleRoot nodes (map (fromJust . mkHexDigit) [pivotIx .. (pivotIx + n)]) : acc, pivotIx - nby2)
+          else
+            (merkleRoot nodes (map (fromJust . mkHexDigit) [(pivotIx - n) .. pivotIx]) : acc, pivotIx + nby2)
+     in
+      go nby2 newPivotIx newAcc
+
 {-
 TODO:
+-1. Records have strict fields.
+0. Type synonym, [hexdigit] -> path
 1. IsList instances for MerklePatriciaForestry.
 2. Move leaf, branch to it's own modules. Don't expose set fields of branch rather have safe setters that also update the hash.
 3. notMember should be replaced with lookup, since we want element in case it exists.
@@ -301,4 +408,6 @@ TODO:
 11. review files, likely delete for monadstore...
 12. Pretty printing, prolly get rid of stock show deriving.
 13. clean tests.
+14. property based testing for membership checks.
+15. At some point, I should go over original JS implementation.
 -}

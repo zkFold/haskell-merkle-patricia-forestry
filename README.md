@@ -9,11 +9,11 @@ This library is meant to be imported qualified. Sample operation is below and se
 import Crypto.Hash.MerklePatriciaForestry qualified as MPF
 
 
--- Inserting elements
+-- Building Merkle Patricia Forestry.
 mpf = MPF.empty 
      & MPF.insert (keyFromString "hail") (valueFromString "haskell")
      -- `Key`, `Value` have `IsString` instances.
-     & MPF.insert "🚫" "JS!"
+     & MPF.insert "🙅‍♂️" "JS"
      -- Would update in case of duplicate key.
      & MPF.insert "hail" "🐼"
      -- Deletion for non-existent key, returns the original trie.

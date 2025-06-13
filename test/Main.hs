@@ -21,7 +21,7 @@ tests =
             [ testCase "Empty trie has null hash" $
                 rootHash MerklePatriciaForestryEmpty @?= nullHash
             , testCase "merkleRoot for empty children" $
-                BS16.encode (merkleRoot mempty) @?= "209155a276ca3c2417e3876971dd587dd64ed9fcb8ef1fd6e7589ef4255c967f"
+                BS16.encode (merkleRoot mempty allHexDigits) @?= "209155a276ca3c2417e3876971dd587dd64ed9fcb8ef1fd6e7589ef4255c967f"
             , testCase "hash of leaf with custom suffix" $ do
                 let key = "81"
                     -- This is to check for odd length leaf suffix case.
@@ -31,7 +31,7 @@ tests =
                 let key = "81"
                     val = "11"
                     leaf = mkLeaf key val (intoPath key)
-                BS16.encode (merkleRoot (Map.fromList [(mkHexDigit 4 & fromJust, MerklePatriciaForestryNodeLeaf leaf)])) @?= "910dffb24e642c330024cc419b49df7f108ae9994e8072176734b24a152ded74"
+                BS16.encode (merkleRoot (Map.fromList [(mkHexDigit 4 & fromJust, MerklePatriciaForestryNodeLeaf leaf)]) allHexDigits) @?= "910dffb24e642c330024cc419b49df7f108ae9994e8072176734b24a152ded74"
             , testCase "merkleRoot for two leaf children" $ do
                 let key1 = "81"
                     val1 = "11"
@@ -39,7 +39,7 @@ tests =
                     val2 = "11"
                     leaf1 = mkLeaf key1 val1 (intoPath key1)
                     leaf2 = mkLeaf key2 val2 (intoPath key2)
-                BS16.encode (merkleRoot (Map.fromList [(mkHexDigit 0 & fromJust, MerklePatriciaForestryNodeLeaf leaf1), (mkHexDigit 15 & fromJust, MerklePatriciaForestryNodeLeaf leaf2)])) @?= "ed001e421fcc8a8e57ccb0317b8abdd1b19652ddb5cd8a60ca49cf447cf28a13"
+                BS16.encode (merkleRoot (Map.fromList [(mkHexDigit 0 & fromJust, MerklePatriciaForestryNodeLeaf leaf1), (mkHexDigit 15 & fromJust, MerklePatriciaForestryNodeLeaf leaf2)]) allHexDigits) @?= "ed001e421fcc8a8e57ccb0317b8abdd1b19652ddb5cd8a60ca49cf447cf28a13"
             , testCase "branch hash for empty branch" $ do
                 BS16.encode (branchHash emptyBranch) @?= "d068658a71d0f9019f2a35d4859fab5dbafa098535665d4464b50796f938fc82"
             , testCase "branch hash for empty branch but with some prefix" $ do
