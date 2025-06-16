@@ -2,6 +2,7 @@ module Crypto.Hash.MerklePatriciaForestry.Internal.Types.Proof (
   Proof (..),
   ProofStep (..),
   encodeProof,
+  toAiken,
 ) where
 
 import Codec.CBOR.Encoding qualified as CBOR
@@ -14,6 +15,7 @@ import Data.ByteString (ByteString)
 import Data.ByteString qualified as BS
 import Data.ByteString.Base16 qualified as BS16
 import Data.Text (Text)
+import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Text
 import GHC.Natural (Natural)
 
@@ -116,3 +118,55 @@ proofStepToTermEncoding (ProofStepBranch prefixLength merkleProof) =
 
 encodeProof :: Proof -> CBOR.Encoding
 encodeProof pf = CBOR.encodeListLenIndef <> mconcat (map proofStepToTermEncoding (proofSteps pf)) <> CBOR.encodeBreak
+
+-- | Serialize the proof as Aiken code. Mainly for debugging / testing.
+toAiken :: Proof -> String
+toAiken pf =
+  let stepsAsString = map stepToString (proofSteps pf)
+   in "[\n"
+        <> indentLines 4 (mconcat stepsAsString)
+        <> "]"
+ where
+  indentLines n s = unlines $ map (replicate n ' ' ++) (lines s)
+  stepToString :: ProofStep -> String
+  stepToString (ProofStepLeaf prefixLength neighbourKeyPath neighbourValueDigest) =
+    "Leaf {\n"
+      <> "  skip: "
+      <> show prefixLength
+      <> ",\n"
+      <> "  key: #\""
+      <> Text.unpack (hexDigitsToText neighbourKeyPath)
+      <> "\",\n"
+      <> "  value: #\""
+      <> Text.unpack (byteStringToHex neighbourValueDigest)
+      <> "\"\n"
+      <> "},\n"
+  stepToString (ProofStepFork prefixLength neighbourPrefix neighbourIx neighbourMerkleRoot) =
+    let neighbour =
+          "Neighbor {\n"
+            <> "  nibble: "
+            <> show (unHexDigit neighbourIx)
+            <> ",\n"
+            <> "  prefix: #\""
+            <> Text.unpack (hexDigitsToText neighbourPrefix)
+            <> "\",\n"
+            <> "  root: #\""
+            <> Text.unpack (byteStringToHex neighbourMerkleRoot)
+            <> "\"\n"
+            <> "}\n"
+     in "Fork {\n"
+          <> "  skip: "
+          <> show prefixLength
+          <> ",\n"
+          <> "  neighbor: \n"
+          <> indentLines 4 neighbour
+          <> "},\n"
+  stepToString (ProofStepBranch prefixLength merkleProof) =
+    "Branch {\n"
+      <> "  skip: "
+      <> show prefixLength
+      <> ",\n"
+      <> "  neighbors: #\""
+      <> Text.unpack (mconcat $ map byteStringToHex merkleProof)
+      <> "\"\n"
+      <> "},\n"
