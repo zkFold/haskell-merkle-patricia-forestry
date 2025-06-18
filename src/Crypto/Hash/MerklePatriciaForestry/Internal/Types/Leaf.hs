@@ -11,6 +11,7 @@ import Crypto.Hash.MerklePatriciaForestry.Internal.Types.Value (Value (..))
 import Data.ByteString (ByteString)
 import Data.ByteString qualified as BS
 import Data.Function ((&))
+import GHC.Generics (Generic)
 
 data Leaf = Leaf
   { leafKey :: Key
@@ -18,7 +19,7 @@ data Leaf = Leaf
   , leafSuffix :: [HexDigit]
   , leafHash :: ByteString
   }
-  deriving stock (Show)
+  deriving stock (Show, Generic)
 
 mkLeaf :: Key -> Value -> [HexDigit] -> Leaf
 mkLeaf key val suffix =

@@ -32,18 +32,19 @@ import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
 import Data.Maybe (fromJust, isJust)
 import GHC.Exts (IsList (..))
+import GHC.Generics (Generic)
 import GHC.Natural (Natural)
 import Prelude hiding (lookup)
 
 data MerklePatriciaForestry
   = MerklePatriciaForestryEmpty
   | MerklePatriciaForestryNode Natural MerklePatriciaForestryNode
-  deriving stock (Show)
+  deriving stock (Show, Generic)
 
 data MerklePatriciaForestryNode
   = MerklePatriciaForestryNodeLeaf Leaf
   | MerklePatriciaForestryNodeBranch Branch
-  deriving stock (Show)
+  deriving stock (Show, Generic)
 
 -- | \(O(1)\). The empty trie.
 empty :: MerklePatriciaForestry
@@ -111,7 +112,7 @@ data Branch = Branch
   , -- TODO: Shall we use a sparse vector here? But then we'll need to somehow also track the size of children.
     branchChildren :: Map HexDigit MerklePatriciaForestryNode
   }
-  deriving stock (Show)
+  deriving stock (Show, Generic)
 
 emptyBranch :: Branch
 emptyBranch =
@@ -427,4 +428,5 @@ TODO:
 15. At some point, I should go over original JS implementation.
 16. get rid of aeson, prolly move it to a separate package.
 17. Add test for IsList instance.
+18. ci, fourmolu.
 -}

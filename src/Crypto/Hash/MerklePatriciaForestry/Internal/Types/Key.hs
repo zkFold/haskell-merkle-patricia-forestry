@@ -11,13 +11,14 @@ import Data.String (IsString (..))
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Text
+import GHC.Generics (Generic)
 
 {- | A key in the trie. It is simply a `ByteString`.
 
 It has an `IsString` instance, so you can use it as a string literal. Internally, strings are UTF-8 encoded.
 -}
 newtype Key = Key {unKey :: ByteString}
-  deriving stock (Show)
+  deriving stock (Show, Generic)
 
 instance IsString Key where
   fromString = keyFromString

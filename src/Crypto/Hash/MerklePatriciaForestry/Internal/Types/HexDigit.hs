@@ -20,11 +20,12 @@ import Data.Maybe (fromJust)
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Text
+import GHC.Generics (Generic)
 import GHC.Natural (Natural)
 
 -- | A hex digit is a natural number between 0 and 15.
 newtype HexDigit = HexDigit {unHexDigit :: Natural}
-  deriving stock (Eq, Ord, Show)
+  deriving stock (Eq, Ord, Show, Generic)
 
 mkHexDigit :: Natural -> Maybe HexDigit
 mkHexDigit n
