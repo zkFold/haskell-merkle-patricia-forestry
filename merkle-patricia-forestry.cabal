@@ -22,6 +22,8 @@ common common
     DerivingStrategies
     OverloadedStrings
     RecordWildCards
+    Strict
+    StrictData
     TypeFamilies
     ViewPatterns
 
