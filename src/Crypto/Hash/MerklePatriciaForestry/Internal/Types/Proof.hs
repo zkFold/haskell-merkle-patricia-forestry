@@ -1,18 +1,13 @@
 module Crypto.Hash.MerklePatriciaForestry.Internal.Types.Proof (
   Proof (..),
   ProofStep (..),
-  encodeProof,
-  toAiken,
+  proofToAiken,
 ) where
 
-import Codec.CBOR.Encoding qualified as CBOR
-import Codec.CBOR.Term qualified as CBOR
 import Control.Arrow ((>>>))
 import Crypto.Hash.MerklePatriciaForestry.Internal.Types.HexDigit
 import Crypto.Hash.MerklePatriciaForestry.Internal.Types.Value
-import Data.Aeson qualified as Aeson
 import Data.ByteString (ByteString)
-import Data.ByteString qualified as BS
 import Data.ByteString.Base16 qualified as BS16
 import Data.Text (Text)
 import Data.Text qualified as Text
@@ -48,80 +43,9 @@ data Proof = Proof
 byteStringToHex :: ByteString -> Text
 byteStringToHex = BS16.encode >>> Text.decodeUtf8
 
-instance Aeson.ToJSON ProofStep where
-  toJSON (ProofStepLeaf prefixLength neighbourKeyPath neighbourValueDigest) =
-    Aeson.object
-      [ "skip" Aeson..= prefixLength
-      , "type" Aeson..= Aeson.String "leaf"
-      , "neighbor"
-          Aeson..= Aeson.object
-            [ "key" Aeson..= Aeson.String (hexDigitsToText neighbourKeyPath)
-            , "value" Aeson..= Aeson.String (byteStringToHex neighbourValueDigest)
-            ]
-      ]
-  toJSON (ProofStepFork prefixLength neighbourPrefix neighbourIx neighbourMerkleRoot) =
-    Aeson.object
-      [ "skip" Aeson..= prefixLength
-      , "type" Aeson..= Aeson.String "fork"
-      , "neighbor"
-          Aeson..= Aeson.object
-            [ "nibble" Aeson..= unHexDigit neighbourIx
-            , "prefix" Aeson..= Aeson.String (hexDigitsToText neighbourPrefix)
-            , "root" Aeson..= Aeson.String (byteStringToHex neighbourMerkleRoot)
-            ]
-      ]
-  toJSON (ProofStepBranch prefixLength merkleProof) =
-    Aeson.object
-      [ "skip" Aeson..= prefixLength
-      , "type" Aeson..= Aeson.String "branch"
-      , "neighbors" Aeson..= Aeson.String (mconcat (map byteStringToHex merkleProof))
-      ]
-
-instance Aeson.ToJSON Proof where
-  toJSON (Proof _path _value steps) = Aeson.toJSON steps
-
-proofStepToTermEncoding :: ProofStep -> CBOR.Encoding
-proofStepToTermEncoding (ProofStepLeaf prefixLength neighbourKeyPath neighbourValueDigest) =
-  CBOR.encodeTerm $
-    CBOR.TTagged 123 $
-      CBOR.TListI $
-        [ CBOR.TInt (fromIntegral prefixLength)
-        , CBOR.TBytes (hexDigitsToByteStringSupportsOdd neighbourKeyPath)
-        , CBOR.TBytes neighbourValueDigest
-        ]
-proofStepToTermEncoding (ProofStepFork prefixLength neighbourPrefix neighbourIx neighbourMerkleRoot) =
-  CBOR.encodeTerm $
-    CBOR.TTagged 122 $
-      CBOR.TListI $
-        [ CBOR.TInt (fromIntegral prefixLength)
-        , CBOR.TTagged 121 $
-            CBOR.TListI
-              [ CBOR.TInt (fromIntegral (unHexDigit neighbourIx))
-              , CBOR.TBytes (hexDigitsToByteStringSupportsOdd neighbourPrefix)
-              , CBOR.TBytes neighbourMerkleRoot
-              ]
-        ]
-proofStepToTermEncoding (ProofStepBranch prefixLength merkleProof) =
-  let (bsa, bsb) = BS.splitAt 64 $ mconcat merkleProof
-   in CBOR.encodeTag64 121
-        <> ( CBOR.encodeListLenIndef
-              <> ( CBOR.encodeInt (fromIntegral prefixLength)
-                    <> ( CBOR.encodeBytesIndef
-                          <> ( CBOR.encodeBytes bsa
-                                <> CBOR.encodeBytes bsb
-                             )
-                          <> CBOR.encodeBreak
-                       )
-                 )
-              <> CBOR.encodeBreak
-           )
-
-encodeProof :: Proof -> CBOR.Encoding
-encodeProof pf = CBOR.encodeListLenIndef <> mconcat (map proofStepToTermEncoding (proofSteps pf)) <> CBOR.encodeBreak
-
 -- | Serialize the proof as Aiken code. Mainly for debugging / testing.
-toAiken :: Proof -> String
-toAiken pf =
+proofToAiken :: Proof -> String
+proofToAiken pf =
   let stepsAsString = map stepToString (proofSteps pf)
    in "[\n"
         <> indentLines 4 (mconcat stepsAsString)

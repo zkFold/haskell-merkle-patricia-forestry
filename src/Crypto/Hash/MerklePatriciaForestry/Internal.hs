@@ -426,7 +426,6 @@ TODO:
 13. clean tests.
 14. property based testing for membership checks.
 15. At some point, I should go over original JS implementation.
-16. get rid of aeson, prolly move it to a separate package.
 17. Add test for IsList instance.
 18. ci, fourmolu.
 -}

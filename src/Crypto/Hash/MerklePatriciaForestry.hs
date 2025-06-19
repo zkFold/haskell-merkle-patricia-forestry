@@ -27,8 +27,7 @@ module Crypto.Hash.MerklePatriciaForestry (
   -- * Proof
   Proof,
   generateProof,
-  encodeProof,
-  toAiken,
+  proofToAiken,
 ) where
 
 import Crypto.Hash.MerklePatriciaForestry.Internal
