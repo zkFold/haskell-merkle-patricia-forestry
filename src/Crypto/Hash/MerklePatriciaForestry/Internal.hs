@@ -1,3 +1,6 @@
+{- | This module contains internals to the package. Breaking changes here
+will not be reflected as part of the major version of this package.
+-}
 module Crypto.Hash.MerklePatriciaForestry.Internal (
   module Crypto.Hash.MerklePatriciaForestry.Internal.Types,
   MerklePatriciaForestry (..),
