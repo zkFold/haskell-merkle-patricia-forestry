@@ -25,6 +25,8 @@ common common
     TypeFamilies
     ViewPatterns
 
+  default-language: GHC2021
+
 library
   import: common
   exposed-modules:
@@ -52,11 +54,9 @@ library
     text,
 
   hs-source-dirs: src
-  default-language: GHC2021
 
 test-suite merkle-patricia-forestry-test
   import: common
-  default-language: GHC2021
   -- other-modules:
   -- other-extensions:
   type: exitcode-stdio-1.0
